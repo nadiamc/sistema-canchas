@@ -6,7 +6,7 @@ use App\Http\Controllers\CanchaController;
 use App\Http\Controllers\ReservaController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('home');
 });
 
 Route::get('/dashboard', function () {
