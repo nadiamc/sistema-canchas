@@ -42,7 +42,7 @@
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{{ $cancha->nombre }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ $cancha->tipo }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">${{ number_format($cancha->precio_hora, 2, ',', '.') }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">${{ number_format($cancha->precio, 2, ',', '.')}} </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             @if($cancha->disponible)
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Disponible</span>
