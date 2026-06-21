@@ -39,28 +39,33 @@ class ReservaController extends Controller
      */
     public function store(Request $request)
     {
-        // Validaciones del lado del servidor (Requisito UTN)
+        // 1. Validaciones del lado del servidor (Requisito UTN)
         $request->validate([
-            'cancha_id'   => 'required|exists:canchas,id', // Debe existir en la tabla canchas
-            'fecha'       => 'required|date|after_or_equal:today', // No se puede reservar el pasado
+            'cancha_id'   => 'required|exists:canchas,id',
+            'fecha'       => 'required|date|after_or_equal:today',
             'hora_inicio' => 'required',
-            'hora_fin'    => 'required|after:hora_inicio', // La hora de fin debe ser posterior
+            'hora_fin'    => 'required|after:hora_inicio',
         ]);
 
-        // Clonamos los datos que vienen del formulario
         $datos = $request->all();
-        
-        // Capturamos el ID del usuario autenticado en el sistema de forma automática y segura
         $datos['user_id'] = Auth::id();
         
-        // Por ahora fijamos un total por defecto para que no falle la base de datos 
-        // (Luego lo podemos automatizar multiplicando el precio de la cancha por las horas)
-        $datos['total'] = 0.00; 
+        // 2. Buscamos la cancha para conocer su precio por hora
+        $cancha = Cancha::findOrFail($request->cancha_id);
 
-        // Creamos la reserva en la base de datos
+        // 3. Calculamos la diferencia en horas usando la herramienta Carbon de Laravel
+        $inicio = \Carbon\Carbon::parse($request->hora_inicio);
+        $fin = \Carbon\Carbon::parse($request->hora_fin);
+        
+        // Trae la diferencia en horas (por ejemplo: 1.5 si jugaron hora y media)
+        $horasDeReserva = $inicio->diffInMinutes($fin) / 60;
+
+        // 4. Multiplicamos el tiempo por el precio por hora de esa cancha
+        $datos['total'] = $horasDeReserva * $cancha->precio_hora; 
+
+        // 5. Creamos la reserva con el total real calculado
         Reserva::create($datos);
 
-        // Redirecciona con un mensaje flash de éxito
         return redirect()->route('reservas.index')->with('success', '¡Reserva registrada con éxito!');
     }
 
@@ -78,13 +83,29 @@ class ReservaController extends Controller
      */
     public function update(Request $request, Reserva $reserva)
     {
+        // 1. Validamos que los datos modificados cumplan las reglas
         $request->validate([
+            'cancha_id'   => 'required|exists:canchas,id', 
             'fecha'       => 'required|date|after_or_equal:today',
             'hora_inicio' => 'required',
             'hora_fin'    => 'required|after:hora_inicio'
         ]);
 
-        $reserva->update($request->all());
+        $datos = $request->all();
+
+        // 2. Buscamos la cancha (útil por si el usuario cambió de cancha al editar)
+        $cancha = Cancha::findOrFail($request->cancha_id);
+
+        // 3. Recalculamos el tiempo con Carbon
+        $inicio = \Carbon\Carbon::parse($request->hora_inicio);
+        $fin = \Carbon\Carbon::parse($request->hora_fin);
+        $horasDeReserva = $inicio->diffInMinutes($fin) / 60;
+
+        // 4. Actualizamos el nuevo total
+        $datos['total'] = $horasDeReserva * $cancha->precio_hora;
+
+        // 5. Impactamos los cambios en la base de datos
+        $reserva->update($datos);
 
         return redirect()->route('reservas.index')->with('success', 'Reserva actualizada con éxito.');
     }
